@@ -7,92 +7,122 @@ Attribute VB_Name = "Module1"
 
 
 Sub challenge()
-Dim i As Long
-Dim wksht As Worksheet
 
-Dim ticker As String
-Dim finalrow As Long
-Dim openprice As Double
-Dim closeprice As Double
-Dim qchange As Double
-Dim pchange As Double
-Dim totalvol As Double
-Dim tablerow As Integer
-
-For Each wksht In ThisWorkbook.Worksheets
-wksht.Cells(1, 9).Value = "Ticker"
-wksht.Cells(1, 10).Value = "Quarterly Change"
-wksht.Cells(1, 11).Value = "Percent Change"
-wksht.Cells(1, 12).Value = "Total Stock Volume"
-
-wksht.Cells(1, 16).Value = "Ticker"
-wksht.Cells(1, 17).Value = "Value"
-wksht.Cells(2, 15).Value = "Greatest % Increase"
-wksht.Cells(3, 15).Value = "Greatest % Decrease"
-wksht.Cells(4, 15).Value = "Greatest Total Volume"
-
-wksht.Range("Q2").NumberFormat = "0.00%"
-wksht.Range("Q3").NumberFormat = "0.00%"
-
-wksht.Cells(2, 17).Value = 0
-wksht.Cells(3, 17).Value = 0
-wksht.Cells(4, 17).Value = 0
-
-i = 2
-tablerow = 1
-finalrow = wksht.Cells(wksht.Rows.Count, "A").End(xlUp).Row
-openprice = wksht.Cells(i, 3).Value
-
-For i = 2 To finalrow
-        
-    ticker = wksht.Cells(i, 1).Value
-    totalvol = totalvol + wksht.Cells(i, 7).Value
+    Dim i As Long
+    Dim j As Integer
+    Dim wksht As Worksheet
     
-    If wksht.Cells(i - 1, 1).Value <> wksht.Cells(i, 1).Value Then
-    openprice = wksht.Cells(i, 3).Value
-    Else
-    If wksht.Cells(i + 1, 1).Value <> wksht.Cells(i, 1).Value Then
-        closeprice = wksht.Cells(i, 6).Value
+    Dim ticker As String
+    Dim openprice As Double
+    Dim closeprice As Double
+    Dim change As Double
+    Dim pchange As Double
+    Dim volume As Double
+    Dim total As Double
+    
+    Dim start As Long
+    Dim rowcount As Long
+    Dim days As Integer
+    Dim dailychange As Double
+    Dim averagechange As Double
+    
+    
+    'set title row of summary table
+    Range("I1") = "Ticker"
+    Range("J1") = "Quarterly Change"
+    Range("K1") = "Percent Change"
+    Range("L1") = "Total Stock Volume"
+    Range("P1").Value = "Ticker"
+    Range("Q1").Value = "Value"
+    Range("O2").Value = "Greatest % Increase"
+    Range("O3").Value = "Greatest % Decrease"
+    Range("O4").Value = "Greatest Total Volume"
+    
+    'set initial values
+    j = 0
+    total = 0
+    change = 0
+    start = 2
+    
+    'get row # of last row of data
+    rowcount = Cells(Rows.Count, 1).End(xlUp).Row
+    
+    'begin loop
+    For i = 2 To rowcount
+            
+        If Cells(i + 1, 1).Value <> Cells(i, 1) Then
+            total = total + Cells(i, 7).Value
         
-        qchange = closeprice - openprice
-        pchange = qchange / openprice
+            If total = 0 Then
+                Range("I" & 2 + j).Value = Cells(i, 1).Value
+                Range("J" & 2 + j).Value = 0
+                Range("K" & 2 + j).Value = "%" & 0
+                Range("L" & 2 + j).Value = 0
+            
+            Else
+                If Cells(start, 3) = 0 Then
+                    For find_value = start To i
+                        If Cells(find_value, 3).Value <> 0 Then
+                            start = find_value
+                            Exit For
+                        End If
+                    Next find_value
+                End If
+            
+            change = (Cells(i, 6) - Cells(start, 3))
+            pchange = change / Cells(start, 3)
+            
+            'start of next stock ticker
+            start = i + 1
+            
+            'print results
+            Range("I" & 2 + j).Value = Cells(i, 1).Value
+            Range("J" & 2 + j).Value = change
+            Range("J" & 2 + j).NumberFormat = "0.00"
+            Range("K" & 2 + j).Value = pchange
+            Range("K" & 2 + j).NumberFormat = "0.00%"
+            Range("L" & 2 + j).Value = total
+            
+            'color-coding positives GREEN, negatives RED
+            Select Case change
+                Case Is > 0
+                    Range("J" & 2 + j).Interior.ColorIndex = 4
+                Case Is < 0
+                    Range("J" & 2 + j).Interior.ColorIndex = 3
+                Case Else
+                    Range("J" & 2 + j).Interior.ColorIndex = 0
+            End Select
+            
+        End If
+    
+        'resetting variables
+        total = 0
+        change = 0
+        j = j + 1
+        days = 0
         
-        tablerow = tablerow + 1
-        
-        wksht.Cells(tablerow, 9).Value = ticker
-        wksht.Cells(tablerow, 10).Value = qchange
-        wksht.Cells(tablerow, 11).Value = pchange
-        wksht.Cells(tablerow, 12).Value = totalvol
-        
-        wksht.Columns("K").NumberFormat = "0.00%"
-        
-        If qchange < 0 Then
-            wksht.Cells(tablerow, 10).Interior.ColorIndex = 3
+    'if ticker is still the same, add results
         Else
-            wksht.Cells(tablerow, 10).Interior.ColorIndex = 4
+            total = total + Cells(i, 7).Value
+            
         End If
-        
-        If totalvol > wksht.Cells(4, 17).Value Then
-            wksht.Cells(4, 17).Value = totalvol
-            wksht.Cells(4, 16).Value = wksht.Cells(i, 1)
-        End If
-        
-        If pchange > wksht.Cells(2, 17).Value Then
-            wksht.Cells(2, 17).Value = pchange
-            wksht.Cells(2, 16).Value = wksht.Cells(i, 1)
-        End If
-        If pchange < wksht.Cells(3, 17).Value Then
-            wksht.Cells(3, 17).Value = pchange
-            wksht.Cells(3, 16).Value = wksht.Cells(i, 1)
-        End If
-        
-        totalvol = 0
-        
-    End If
-    End If
-Next i
+    
+    Next i
+    
+    'take the max and min, place them in separate part of worksheet
+    Range("Q2") = "%" & WorksheetFunction.Max(Range("K2:K" & rowcount)) * 100
+    Range("Q3") = "%" & WorksheetFunction.Min(Range("K2:K" & rowcount)) * 100
+    Range("Q4") = WorksheetFunction.Max(Range("L2:L" & rowcount))
+    
+    'returns 1 less because header of row is not a factor
+    increase_number = WorksheetFunction.Match(WorksheetFunction.Max(Range("K2:K" & rowcount)), Range("K2:K" & rowcount), 0)
+    decrease_number = WorksheetFunction.Match(WorksheetFunction.Min(Range("K2:K" & rowcount)), Range("K2:K" & rowcount), 0)
+    volume_number = WorksheetFunction.Match(WorksheetFunction.Max(Range("L2:L" & rowcount)), Range("L2:L" & rowcount), 0)
+    
+    'final ticker symbol for total, greatest % of increase & decrease, and average
+    Range("P2") = Cells(increase_number + 1, 9)
+    Range("P3") = Cells(decrease_number + 1, 9)
+    Range("P4") = Cells(volume_number + 1, 9)
+    
 
-Next wksht
 End Sub
-
-
